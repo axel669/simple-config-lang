@@ -1,0 +1,36 @@
+numbers:
+  decimal: 45067
+  scinot: 1.3e-3
+  octal: 0o777
+  hex: 0xcafe
+bools:
+  true: true
+  false: false
+  # none of this on/off nonsense
+  not a bool: on
+strings:
+  no quotes: a string without quotes
+  dbl quotes: "test \"\x20\\u0020end"
+  single quotes: 'also works'
+  multiline: >
+    this is a multiline string
+    with lots of content
+      with an indent inside
+      the inner indents are maintained
+
+    (and the leading indent removed)
+  multiline tabbed: |
+    this is a multiline string
+
+    with lots of content
+      with an indent inside
+    (and the leading indent kept)
+lists:
+  - item 1
+  - more strings
+  - >
+    multiline allowed
+    isnt that cool?
+  - embedded: objects
+    with: more props
+  - 45067
