@@ -1,0 +1,20 @@
+{
+  "name": "simple-config-lang",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "peggy --format es yaxl.peggy",
+    "build.trace": "peggy --format es --trace yaxl.peggy",
+    "test": "node main.js",
+    "test.rebuild": "npm run build && node main.js",
+    "test.trace": "npm run build.trace && node main.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "peggy": "^4.2.0"
+  }
+}
