@@ -1,5 +1,12 @@
 {
-    // console.clear()
+    const basicEscape = {
+        "b": "\b",
+        "r": "\r",
+        "n": "\n",
+        "t": "\t",
+        "v": "\v",
+    }
+
     let stack = [""]
     const labels = {}
     const addLabel = (name, value) => {
@@ -17,9 +24,12 @@ Config
         return value
     }
 Object
-    = _N label:(samedent Label)? items:(samedent (ObjectItem / ArrayItem))+ {
+    = _N label:(samedent Label)? items:(EmptyLine / samedent (ObjectItem / ArrayItem) / Comment)+ {
         const parts = items.reduce(
             (list, item) => {
+                if (item === null) {
+                    return list
+                }
                 const base = item[1]
                 if (Array.isArray(base[0]) === true) {
                     list.push(...base)
@@ -49,9 +59,9 @@ ObjectItem
     = key:ObjectKey __ value:Value {
         return [ key, value, location() ]
     }
-    / key:ObjectKey __ value:MLString {
-        return [ key, value, location() ]
-    }
+    // / key:ObjectKey __ value:MLString {
+    //     return [ key, value, location() ]
+    // }
     / key:ObjectKey __N &indent value:Object &dedent {
         return [ key, value, location() ]
     }
@@ -106,6 +116,10 @@ samedent
     = i:_ &{
         return i === stack[0]
     }
+mindent
+    = i:_ &{
+        return i.length >= stack[0].length
+    } { return [stack[0], i.slice(stack[0].length)] }
 
 letter = [a-z]
 
@@ -114,6 +128,7 @@ Value
     / value:Bool EOL { return value }
     / value:Null EOL { return value }
     / value:Ref EOL { return value }
+    / value:MLString { return value }
     / value:String EOL { return value }
 
 Bool
@@ -122,18 +137,39 @@ Bool
 
 Null = "null" { return null }
 String
-    = '"' value:$(([^"] / '\\"')*) '"' { return value }
-    / "'" value:$(([^'] / "\\'")*) "'" { return value }
-    / value:$([^ \r\n\t"'|>] [^\r\n\t]*) { return value }
+    = '"' value:DChar* '"' { return value.join("") }
+    / "'" value:SChar* "'" { return value.join("") }
+    / value:((Escapes / [^ \r\n\t"'|>]) (Escapes / [^\r\n\t])*) {
+        return value[0] + value[1].join("")
+    }
+DChar = Escapes / [^"]
+SChar = Escapes / [^']
+Escapes
+    = "\\" c:[^xu] { return basicEscape[c] ?? c }
+    / "\\x" seq:$(HexChar|2|) {
+        return String.fromCharCode(parseInt(seq, 16))
+    }
+    / "\\u" seq:$(HexChar|4|) {
+        return String.fromCharCode(parseInt(seq, 16))
+    }
+HexChar = [0-9a-fA-F]
 MLString
-    = ">" _N &indent lines:StringLine+ &dedent { return lines.join("\n") }
+    = ">" _N &indent lines:StringLine+ &dedent { console.log(lines); return lines.join("\n") }
+    / "|" _N &indent lines:StringLineTabbed+ &dedent { return lines.join("\n") }
 StringLine
-    = samedent line:$([^\r\n]+) EOL { return line }
+    = EmptyLine { return "" }
+    / line:(mindent [^\r\n]+) EOL { return line[0][1] + line[1].join("") }
+StringLineTabbed
+    = EmptyLine { return stack[0] }
+    / line:(mindent [^\r\n]+) EOL { return line[0].join("") + line[1].join("") }
 
 Number
     = "0x" text:$([0-9a-fA-F]+) { return parseInt(text, 16) }
     / "0b" text:$([01]+) { return parseInt(text, 2) }
-    / text:$([0-9]+ "." [0-9]+) { return parseFloat(text) }
+    / "0o" text:$([0-7]+) { return parseInt(text, 8) }
+    / text:$([0-9]+ "." [0-9]+ (("e" / "E") ("+" / "-")? [0-9]+)?) {
+        return parseFloat(text)
+    }
     / text:$([0-9]+) { return parseInt(text, 10) }
 
 Label
@@ -145,6 +181,9 @@ Ref
         }
         return labels[label]
     }
+Comment
+    = _ "#" [^\r\n]* EOL { return null }
+EmptyLine = _ __N { return null }
 
 _ "indent"
     = $(" "*)
